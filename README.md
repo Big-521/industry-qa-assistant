@@ -1,9 +1,12 @@
 # 🚀 行业知识问答助手（FastAPI + Streamlit）
 
-一个基于 **FastAPI** 后端 + **Streamlit** 前端 的本地知识问答系统。
-支持上传 PDF / Word / TXT 文件，自动向量化入库，并基于文档内容实现上下文精准问答。
+[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)]()
+[![FastAPI](https://img.shields.io/badge/FastAPI-Backend-green)]()
+[![Streamlit](https://img.shields.io/badge/Streamlit-Frontend-red)]()
+[![LangChain](https://img.shields.io/badge/LangChain-Embeddings-orange)]()
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)]()
 
----
+一个基于 **FastAPI** + **Streamlit** 的本地知识问答系统，支持 PDF / DOCX / TXT 上传、自动向量化入库与上下文问答。
 
 ## 🌟 功能特性
 
