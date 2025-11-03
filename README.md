@@ -20,8 +20,8 @@
 ```
 📁 项目根目录
 │
-├── 文件1.py            # FastAPI 后端（上传、向量化、QA接口等）
-├── 文件2.py            # Streamlit 前端（上传+聊天界面）
+├── app.py            # FastAPI 后端（上传、向量化、QA接口等）
+├── ui_app.py            # Streamlit 前端（上传+聊天界面）
 ├── uploads/            # 上传文件存储目录（自动创建）
 ├── vectorstore/        # 向量数据库目录（自动创建）
 └── README.md           # 项目说明文件
