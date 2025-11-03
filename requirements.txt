@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+streamlit
+openai
+langchain
+langchain-community
+faiss-cpu
+requests
+dashscope
