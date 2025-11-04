@@ -1,4 +1,4 @@
-# 🚀 行业知识问答助手（FastAPI + Streamlit）
+# 🚀 行业知识问答助手（Industry QA Assistant）
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)]()
 [![FastAPI](https://img.shields.io/badge/FastAPI-Backend-green)]()
@@ -6,15 +6,34 @@
 [![LangChain](https://img.shields.io/badge/LangChain-Embeddings-orange)]()
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)]()
 
-一个基于 **FastAPI** + **Streamlit** 的本地知识问答系统，支持 PDF / DOCX / TXT 上传、自动向量化入库与上下文问答。
+一个基于 **FastAPI + Streamlit + OpenAI 向量检索** 架构的智能知识问答系统。
+支持 **多文件上传、向量化入库、上下文问答、多轮对话**，可本地快速部署，轻量易扩展。
 
-## 🌟 功能特性
+---
 
-✅ 支持多种文件格式上传（PDF / DOCX / TXT）
-✅ 自动文本切分与向量化存储（FAISS + DashScope Embeddings）
-✅ 本地知识库检索问答（Qwen 模型）
-✅ Streamlit 聊天界面，左右气泡样式，支持多轮对话
-✅ 支持上下文记忆（基于 session_id）
+## 📘 功能特性
+
+### ✅ 文件上传与知识入库
+- 支持上传 **PDF、DOCX、TXT** 等多种文件类型；
+- 自动提取文本并进行 **向量化处理**；
+- 存入本地知识库，用于后续问答检索。
+
+### 💬 智能问答
+- 基于 **OpenAI Embeddings + 向量数据库检索**；
+- 支持 **上下文记忆、多轮对话**；
+- 若资料中未提及，模型会明确说明。
+
+### 🧠 后端（FastAPI）
+- 文件上传接口：`/upload_files`
+- 问答接口：`/qa`
+- 聊天接口：`/chat`
+- 文件列表接口：`/list_files`
+- 支持跨域访问，前后端可独立运行
+
+### 🎨 前端（Streamlit）
+- 左侧知识库文件展示区
+- 右侧问答区（气泡式 UI，美观简洁）
+- 自动与后端交互，实现实时问答响应
 
 ---
 
@@ -88,6 +107,19 @@ streamlit run ui_app.py
 
 ---
 
+---
+
+## 🧠 使用说明
+
+1. 打开前端页面；
+2. 在左侧上传 PDF/DOCX/TXT 文件；
+3. 系统自动入库并显示知识文件；
+4. 在右侧输入问题即可得到基于资料的精准回答；
+5. 聊天记录自动保存（同一 session_id 内）；
+6. 若资料中未提及，系统会提示“资料中未提及相关内容”。
+
+---
+
 ## 💬 使用流程
 
 1️⃣ **上传文档**
@@ -138,3 +170,9 @@ streamlit run ui_app.py
 ## 🧾 License
 
 MIT License
+
+---
+
+### 🌟 Star 支持
+如果该项目对你有帮助，欢迎点亮 ⭐️ Star！
+👉 [GitHub 项目地址](https://github.com/Big-521/industry-qa-assistant)
