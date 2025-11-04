@@ -16,45 +16,51 @@ if "chat_history" not in st.session_state:
 st.title("行业知识问答助手 🚀")
 st.write("上传文档，AI 根据知识库回答你的问题。")
 
-# 已入库文件展示
-st.subheader("📂 已入库文件")
+# 美化页面 - 折叠面板展示已入库文件
+with st.expander("📂 已入库文件（点击展开/收起）", expanded=False):
+    @st.cache_data
+    def get_file_list():
+        resp = requests.get(f"{API_URL}/files")
+        return resp  # 返回 Response 对象
 
-
-@st.cache_data
-def get_file_list():
-    resp = requests.get(f"{API_URL}/files")
-    return resp  # 返回 Response 对象
-
-
-try:
-    response = get_file_list()
-    if response.status_code == 200:
-        data = response.json()
-        files = data.get("files", [])
-        if files:
-            for f in files:
-                st.write(f"✅ {f}")
+    try:
+        response = get_file_list()
+        if response.status_code == 200:
+            data = response.json()
+            files = data.get("files", [])
+            if files:
+                for f in files:
+                    st.markdown(f"✅ **{f}**")
+            else:
+                st.info("当前没有已入库文件")
         else:
-            st.info("当前没有已入库文件")
-    else:
-        st.error("获取文件列表失败")
-except Exception as e:
-    st.error(f"请求出错：{e}")
+            st.error("获取文件列表失败")
+    except Exception as e:
+        st.error(f"请求出错：{e}")
 
 # 上传文件并入库
 st.subheader("📁 上传文档")
 with st.form("upload_form"):
-    uploaded_file = st.file_uploader(
-        "选择文件 (PDF / DOCX / TXT)", type=["pdf", "docx", "txt"])
+    uploaded_files = st.file_uploader(
+        "选择文件 (PDF / DOCX / TXT)", type=["pdf", "docx", "txt"], accept_multiple_files=True)
     submit_upload = st.form_submit_button("上传并入库")
-    if submit_upload and uploaded_file is not None:
+    if submit_upload and uploaded_files:
         with st.spinner("正在上传并处理文件..."):
-            files = {"file": (uploaded_file.name, uploaded_file.getvalue())}
+            # 构造 multipart/form-data，字段名要和后端一致
+            multipart_files = [("files", (f.name, f.getvalue()))
+                               for f in uploaded_files]
+
             try:
-                response = requests.post(f"{API_URL}/upload", files=files)
+                response = requests.post(
+                    f"{API_URL}/upload", files=multipart_files)
                 if response.status_code == 200:
                     data = response.json()
-                    st.success(f"{data['message']}，共分成 {data['chunks']} 块内容")
+                    for file_info in data["files"]:
+                        st.success(
+                            f"{file_info['filename']} 上传成功，共 {file_info['chunks']} 块")
+                    # 🔄 上传成功后清除缓存并刷新文件列表
+                    get_file_list.clear()
+                    st.rerun()
                 else:
                     st.error(f"上传失败：{response.text}")
             except Exception as e:

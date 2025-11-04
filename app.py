@@ -6,6 +6,7 @@ from langchain_community.embeddings import DashScopeEmbeddings
 from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader, TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
+from typing import List
 
 # ==============================
 # 初始化应用
@@ -43,41 +44,55 @@ embeddings = DashScopeEmbeddings(
 
 
 @app.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
+async def upload_files(files: List[UploadFile] = File(...)):
     """
-    上传文件 -> 解析 -> 切分 -> 向量化 -> 存储
+    支持多文件上传 -> 解析 -> 切分 -> 向量化 -> 存储
     """
-    file_path = os.path.join(UPLOAD_DIR, str(file.filename))
-    with open(file_path, "wb") as f:
-        f.write(await file.read())
+    results = []
 
-    # 根据文件类型选择加载器
-    filename = file.filename or ""
-    if filename.endswith(".pdf"):
-        loader = PyPDFLoader(file_path)
-    elif filename.endswith(".docx"):
-        loader = Docx2txtLoader(file_path)
-    else:
-        loader = TextLoader(file_path, encoding="utf-8")
-
-    # 读取文档
-    docs = loader.load()
-    # 分块
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=800, chunk_overlap=100)
-    chunks = splitter.split_documents(docs)
-    # 建立或更新向量库
+    # 加载或创建向量库
     if os.path.exists(VECTOR_DIR) and os.listdir(VECTOR_DIR):
-        # 已存在向量库 -> 追加新文档
         db = FAISS.load_local(VECTOR_DIR, embeddings,
                               allow_dangerous_deserialization=True)
-        db.add_documents(chunks)
     else:
-        # 第一次创建向量库
-        db = FAISS.from_documents(chunks, embeddings)
+        db = None
+
+    for file in files:
+        file_path = os.path.join(UPLOAD_DIR, str(file.filename))
+        with open(file_path, "wb") as f:
+            f.write(await file.read())
+
+        # 根据文件类型选择加载器
+        filename = file.filename or ""
+        if filename.endswith(".pdf"):
+            loader = PyPDFLoader(file_path)
+        elif filename.endswith(".docx"):
+            loader = Docx2txtLoader(file_path)
+        else:
+            loader = TextLoader(file_path, encoding="utf-8",
+                                autodetect_encoding=True)
+
+        # 读取文档
+        docs = loader.load()
+
+        # 分块
+        splitter = RecursiveCharacterTextSplitter(
+            chunk_size=800, chunk_overlap=100)
+        chunks = splitter.split_documents(docs)
+
+        # 更新向量库
+        if db:
+            db.add_documents(chunks)
+        else:
+            db = FAISS.from_documents(chunks, embeddings)
+
+        results.append({"filename": file.filename, "chunks": len(chunks)})
+
+    assert db is not None
     db.save_local(VECTOR_DIR)
 
-    return {"message": f"{file.filename} 上传成功并已入库！", "chunks": len(chunks)}
+    return {"message": "文件上传成功并已入库！", "files": results}
+
 
 # ==============================
 # QA 问答接口
@@ -90,6 +105,9 @@ async def qa(query: str = Form(...), session_id: str = Form(...)):
     从向量库中检索最相似内容 -> 结合上下文生成回答
     session_id: 用户会话ID，用于保存多轮对话上下文
     """
+    # 检查是否已有向量库
+    if not os.path.exists(VECTOR_DIR) or not any(fname.endswith(".faiss") or fname.endswith(".pkl") for fname in os.listdir(VECTOR_DIR)):
+        return {"query": query, "answer": "当前知识库为空，请先上传文档入库！", "source_count": 0}
     # 获取会话历史
     history = conversation_histories.get(session_id, [])
     # 加入本轮用户问题
@@ -97,9 +115,11 @@ async def qa(query: str = Form(...), session_id: str = Form(...)):
     # 检查是否已有向量库
     if not os.path.exists(VECTOR_DIR) or not os.listdir(VECTOR_DIR):
         return {"error": "当前暂无知识库，请先上传文档！"}
-    # 加载向量库
-    db = FAISS.load_local(VECTOR_DIR, embeddings,
-                          allow_dangerous_deserialization=True)
+    try:
+        db = FAISS.load_local(VECTOR_DIR, embeddings,
+                              allow_dangerous_deserialization=True)
+    except Exception as e:
+        return {"query": query, "answer": f"知识库加载失败：{str(e)}，请重新上传文档入库。", "source_count": 0}
     # 检索相似内容
     docs = db.similarity_search(query, k=3)
     context = "\n\n".join([d.page_content for d in docs])
